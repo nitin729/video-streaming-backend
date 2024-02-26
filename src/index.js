@@ -1,8 +1,15 @@
 import dotenv from "dotenv";
 import connectDB from "./db/db.js";
 dotenv.config();
+const port = process.env.PORT;
 
-connectDB();
+connectDB()
+  .then(() =>
+    app.listen(port || 8000, () => {
+      console.log(`Server is running at ${port}`);
+    })
+  )
+  .catch((err) => console.error("MONOGODB connection failed !!", err));
 
 /*
  first approach
