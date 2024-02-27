@@ -1,11 +1,3 @@
-const asyncHandler = async (fn) => {
-  (req, res, next) => {
-    Promise.resolve(fn(req, res, next)).catch((err) => next(err));
-  };
-};
-
-export default asyncHandler;
-/* 
 const asyncHandler = (fn) => async (req, res, next) => {
   try {
     await fn(req, res, next);
@@ -15,4 +7,14 @@ const asyncHandler = (fn) => async (req, res, next) => {
       message: err.message,
     });
   }
+};
+
+export default asyncHandler;
+
+/* 
+// Promise approach
+const asyncHandler = async (fn) => {
+  (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch((err) => next(err));
+  };
 }; */
