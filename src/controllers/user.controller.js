@@ -16,26 +16,33 @@ const registerUser = asyncHandler(async (req, res) => {
   //return response
 
   const { fullName, email, userName, password } = req.body;
-  console.log(email);
+
   if (
     [fullName, email, userName, password].some((field) => field.trim() === "")
   ) {
     throw new ApiError(400, "All fields are required");
   }
 
-  const existingUser = User.findOne({
+  const existingUser = await User.findOne({
     $or: [{ userName }, { email }],
   });
-  console.log(existingUser, "existing user");
+
   if (existingUser) {
-    throw ApiError(409, "User with this email or username already exists");
+    throw new ApiError(409, "User with this email or username already exists");
   }
   // write email validation
 
   const avatarLocalPath = req.files?.avatar[0]?.path;
-  const coverImageLocalPath = req.files?.coverImage[0]?.path;
-  console.log(req.files, "req files");
-  if (avatarLocalPath) {
+  let coverImageLocalPath;
+  if (
+    req.files &&
+    Array.isArray(req.files.coverImage) &&
+    req.files.coverImage.length > 0
+  ) {
+    coverImageLocalPath = req.files?.coverImage[0]?.path;
+  }
+
+  if (!avatarLocalPath) {
     throw new ApiError(400, " Avatar is required");
   }
   const avatar = await uploadOnCloudinary(avatarLocalPath);
@@ -58,7 +65,7 @@ const registerUser = asyncHandler(async (req, res) => {
     "-password -refreshToken"
   );
   if (!createdUser) {
-    throw ApiError(500, "Internal server error");
+    throw new ApiError(500, "Internal server error");
   }
 
   return res

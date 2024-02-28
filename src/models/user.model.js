@@ -27,11 +27,9 @@ const userSchema = new mongoose.Schema(
     },
     avatar: {
       type: String, //cloudinary url
-      unique: true,
     },
     coverImage: {
       type: String, //cloudinary url
-      unique: true,
     },
     watchHistory: [
       {
