@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import jwt from "jsonwebtoken";
+import { json } from "express";
 
 const generateAccessAndRefreshToken = async (userId) => {
   try {
@@ -252,6 +253,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 });
 
 const getCurrentUser = asyncHandler(async (req, res) => {
+  //get the current user -- Since we used auth middleware, we will get the user object in the request. Find the user in db with _id
   const currentUser = req.user;
   return res
     .status(200)
@@ -261,8 +263,80 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 });
 
 const updateAccountDetails = asyncHandler(async (req, res) => {
-  // write seperate controller if want to change images or other files
+  // Always write seperate controller if want to change images or other files
+
   const { email, fullName } = req.body;
+  if (!fullName || !email) {
+    throw new ApiError(400, " All fields are required");
+  }
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        fullName,
+        email,
+      },
+    },
+    { new: true }
+  ).select("-password -refreshToken"); // new: true returns the updated information
+
+  return res.status(
+    200,
+    json(new ApiResponse(200, user, "Account details updated successfully"))
+  );
+});
+
+const updateUserAvatar = asyncHandler(async (req, res) => {
+  //add auth and multer middlewares in the routes
+  const avatarLocalPath = req.file?.path;
+  if (!avatarLocalPath) {
+    throw new ApiError(400, "Avatar file is misssing");
+  }
+
+  //TODO: delete old image
+  const avatar = await uploadOnCloudinary(avatarLocalPath);
+  if (!avatar.url) {
+    throw new ApiError(401, "Error while uploading the avatar");
+  }
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        avatar: avatar.url,
+      },
+    },
+    { new: true }
+  ).select("-password -refreshToken");
+
+  return res.status(
+    200,
+    json(new ApiResponse(200, user, "Avatar updated successfully"))
+  );
+});
+const updateUserCoverImage = asyncHandler(async (req, res) => {
+  //add auth and multer middlewares in the routes
+  const coverImageLocalPath = req.file?.path;
+  if (!coverImageLocalPath) {
+    throw new ApiError(400, "CoverImage file is misssing");
+  }
+  const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+  if (!coverImage.url) {
+    throw new ApiError(401, "Error while uploading the coverImage");
+  }
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        coverImage: coverImage.url,
+      },
+    },
+    { new: true }
+  ).select("-password -refreshToken");
+
+  return res.status(
+    200,
+    json(new ApiResponse(200, user, "Cover Image updated successfully"))
+  );
 });
 
 export {
@@ -273,4 +347,6 @@ export {
   getCurrentUser,
   changeCurrentPassword,
   updateAccountDetails,
+  updateUserAvatar,
+  updateUserCoverImage,
 };
