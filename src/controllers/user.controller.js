@@ -225,4 +225,52 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 });
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken };
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+  //take the inputs oldpass and currentPass from req
+  //get the current user -- Since we used auth middleware, we will get the user object in the request. Find the user in db with _id
+  //Check if user exists
+  //compare the old password with isPasswordCorrect method
+  // verify if the old password is correct
+  // set New password in user
+  //save the user in db
+  // return a successfull response
+  const { oldPassword, newPassword } = req.body;
+  if (!req.user) {
+    throw new ApiError(401, "Unauthorized user");
+  }
+  const user = await User.findById(req.user?._id);
+  if (!user) {
+    throw new ApiError(401, "Unauthorized user");
+  }
+  const isOldPasswordVerfied = await user.isPasswordCorrect(oldPassword);
+  if (!isOldPasswordVerfied) {
+    throw new ApiError(400, "Old password verification failed");
+  }
+  user.password = newPassword;
+  await user.save({ validateBeforeSave: false });
+  return res.status(200, {}, "Password changed successfully");
+});
+
+const getCurrentUser = asyncHandler(async (req, res) => {
+  const currentUser = req.user;
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, currentUser, "Current user fetched successfully")
+    );
+});
+
+const updateAccountDetails = asyncHandler(async (req, res) => {
+  // write seperate controller if want to change images or other files
+  const { email, fullName } = req.body;
+});
+
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  getCurrentUser,
+  changeCurrentPassword,
+  updateAccountDetails,
+};
