@@ -1,3 +1,4 @@
+import { mongo } from "mongoose";
 import { Post } from "../models/post.model";
 import ApiError from "../utils/apiError";
 import { ApiResponse } from "../utils/apiResponse";
@@ -10,13 +11,13 @@ const createPost = asyncHandler(async (req, res) => {
   //send the response
 
   const { content } = req.body;
-  const userId = req.user?.id;
+  const userId = req.user?._id;
   if (!content && !userId) {
     throw new ApiError(401, "content or user is missing");
   }
   const postObject = await Post.create({
     content,
-    userId,
+    owner: userId,
   });
   if (!postUser) {
     throw new ApiError(500, "Internal server error");
@@ -28,7 +29,21 @@ const createPost = asyncHandler(async (req, res) => {
       new ApiResponse(200, postObject, "Post has been created successfully")
     );
 });
-const getUserPosts = asyncHandler(async (req, res) => {});
+const getUserPosts = asyncHandler(async (req, res) => {
+  const userId = req.user?._id;
+  if (!userId) {
+    throw new ApiError(401, "User not found");
+  }
+  const userPosts = await Post.find({ owner: userId });
+
+  if (!userPosts) {
+    throw new ApiError(500, "Posts not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, userPosts, "Posts fetched successfully"));
+});
 
 const updatePost = asyncHandler(async (req, res) => {
   const { content } = req.body;
