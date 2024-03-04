@@ -5,12 +5,12 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import jwt from "jsonwebtoken";
 import { json } from "express";
-import { mongo } from "mongoose";
+import { ObjectId } from "mongodb";
 
 const generateAccessAndRefreshToken = async (userId) => {
   try {
     const user = await User.findById(userId);
-    console.log(user, "user");
+    //  console.log(user, "user");
     const accessToken = user.genearateAccessToken();
     const refreshToken = user.genearateRefreshToken();
 
@@ -116,8 +116,9 @@ const loginUser = asyncHandler(async (req, res) => {
   if (!user) {
     throw new ApiError(404, "User does not exist");
   }
+  const isPasswordValid = await user.isPasswordCorrect(password);
+  console.log(isPasswordValid, "isPasswordValid");
 
-  const isPasswordValid = user.isPasswordCorrect(password);
   if (!isPasswordValid) {
     throw new ApiError(401, "Password is incorrect");
   }
@@ -240,6 +241,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
   if (!req.user) {
     throw new ApiError(401, "Unauthorized user");
   }
+  console.log(oldPassword, newPassword);
   const user = await User.findById(req.user?._id);
   if (!user) {
     throw new ApiError(401, "Unauthorized user");
@@ -250,7 +252,10 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
   }
   user.password = newPassword;
   await user.save({ validateBeforeSave: false });
-  return res.status(200, {}, "Password changed successfully");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password changed successfully"));
 });
 
 const getCurrentUser = asyncHandler(async (req, res) => {
@@ -417,7 +422,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
     {
       $match: {
         //In aggregate pipeline we need to converr the req.user._id into mongo db ObjectId
-        _id: new mongoose.Types.ObjectId(req.user?._id),
+        _id: new ObjectId(req.user?._id),
       },
     },
     {
@@ -463,7 +468,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
   return res.status(
     200,
     json(
-      new ApiError(
+      new ApiResponse(
         200,
         user[0].watchHistory,
         "Watch history fetched successfully"
