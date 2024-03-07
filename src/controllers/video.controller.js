@@ -15,27 +15,13 @@ const getAllVideos = asyncHandler(async (req, res) => {
     limit: limit,
   };
   const videos = await Video.aggregate([
-    /*   {
+    {
       $match: { owner: userId },
-    }, */
-    {
-      $lookup: {
-        from: "videos",
-        localField: "owner",
-        foreignField: "_id",
-        as: "filteredVideos",
-      },
     },
     {
       $project: {
-        videoUrl: 1,
-        title: 1,
-        owner: 1,
-      },
-    },
-    {
-      $project: {
-        videoUrl: 1,
+        videoFile: 1,
+        thumbnail: 1,
         title: 1,
         owner: 1,
       },
@@ -46,7 +32,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
   }
 
   const paginatedVids = await Video.aggregatePaginate(videos, options);
-  if (!videos) {
+  if (!paginatedVids) {
     throw new ApiError(500, "Could not fetch videos");
   }
   return res
