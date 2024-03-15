@@ -4,11 +4,11 @@ import { Subscription } from "../models/subscription.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-
+import { ObjectId } from "mongodb";
 const toggleSubscription = asyncHandler(async (req, res) => {
+  //TODO: create subscription in db
   const { channelId } = req.params;
-  const userId = req.user.id;
-  const subscriptions = await Subscription.aggregate([
+  const subscriptions = await User.aggregate([
     {
       $match: {
         channel: channelId,
@@ -47,17 +47,17 @@ const toggleSubscription = asyncHandler(async (req, res) => {
 // controller to return subscriber list of a channel
 const getUserChannelSubscribers = asyncHandler(async (req, res) => {
   const { channelId } = req.params;
-  const subscriberList = await Subscription.aggregate([
+  const subscriberList = await User.aggregate([
     {
       $match: {
-        channel: channelId,
+        id: new ObjectId(channelId),
       },
     },
     {
       $lookup: {
         from: "subscriptions",
-        localField: "subscriber",
-        foreignField: req.user?._id,
+        localField: "_id",
+        foreignField: "subcriber",
         as: "subscribers",
       },
     },
@@ -81,7 +81,7 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
     },
   ]);
   if (!subscriberList) {
-    throw new ApiError(500, "Problem fetching subscibers");
+    throw new ApiError(410, "Problem fetching subscibers");
   }
   return res
     .status(200)
@@ -93,18 +93,18 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
 // controller to return channel list to which user has subscribed
 const getSubscribedChannels = asyncHandler(async (req, res) => {
   const { subscriberId } = req.params;
-  console.log(subscriberId, "channelList");
-  const channelList = await Subscription.aggregate([
+  console.log(subscriberId, "subscriberId");
+  const channelList = await User.aggregate([
     {
       $match: {
-        subscriber: subscriberId,
+        id: new ObjectId(subscriberId),
       },
     },
     {
       $lookup: {
         from: "subscriptions",
-        localField: "channel",
-        foreignField: req.user?._id,
+        localField: "_id",
+        foreignField: "channel",
         as: "channels",
       },
     },
@@ -128,9 +128,9 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
     },
   ]);
   console.log(channelList, "channelList");
-  if (!channelList) {
+  /*  if (!channelList) {
     throw new ApiError(500, "Problem fetching channels");
-  }
+  } */
   return res
     .status(200)
     .json(new ApiResponse(200, channelList, "Channels fetched successFully"));
