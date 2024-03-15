@@ -27,23 +27,7 @@ const getChannelStats = asyncHandler(async (req, res) => {
     },
   ]);
 
-  const totalVideos = await Video.aggregate([
-    {
-      $match: {
-        owner: req.user?._id,
-      },
-    },
-    {
-      $group: {
-        _id: null,
-        videos: {
-          $sum: 1,
-        },
-      },
-    },
-  ]);
-
-  const totalLikes = await Video.aggregate([
+  const stats = await Video.aggregate([
     {
       $match: {
         owner: new mongoose.Types.ObjectId(req.user?._id),
@@ -62,9 +46,8 @@ const getChannelStats = asyncHandler(async (req, res) => {
         totalLikes: {
           $size: "$likes",
         },
-        totalViews: {
-          $size: "$views",
-        },
+        totalViews: "$views",
+        totalVideos: 1,
       },
     },
     {
@@ -72,33 +55,17 @@ const getChannelStats = asyncHandler(async (req, res) => {
         _id: null,
         totalLikes: { $sum: "$totalLikes" },
         totalViews: { $sum: "$totalViews" },
+        totalVideos: { $sum: 1 },
       },
     },
   ]);
 
-  const stats = {
-    subs: totalSubscribers,
-    vids: totalVideos,
-    likes: totalLikes,
-  };
+  if (!totalSubscribers) {
+    throw new ApiError(500, "Subscribers not found");
+  }
 
-  /*   const subscribers = await Subscription.aggregate([
-    {
-      $match: {
-        channel: req.user?._id,
-      },
-    },
-    {
-      $group: {
-        _id: null,
-        totalSubscribers: {
-          $sum: 1,
-        },
-      },
-    },
-  ]); */
+  stats[0].totalSubscribers = totalSubscribers;
 
-  console.log(stats);
   if (!stats) {
     throw new ApiError(500, "Stats not found");
   }
